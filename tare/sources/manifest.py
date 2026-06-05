@@ -35,6 +35,11 @@ class ManifestSource(ToolSource):
                 f"Capture one (see manifests/README.md) or use --source live."
             )
         data = json.loads(path.read_text(encoding="utf-8"))
+        if data.get("captured_at") == "UNCAPTURED":
+            raise ValueError(
+                f"{config.name}: manifest is a stub (captured_at=UNCAPTURED). "
+                f"Capture it: {data.get('provenance', 'see manifests/README.md')}"
+            )
         tools = [Tool.model_validate(t) for t in data.get("tools", [])]
         return ServerToolset(
             server=config.name,

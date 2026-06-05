@@ -1,0 +1,30 @@
+# TARE project gitignore
+
+# These files are intentionally excluded from the repo.
+# They live outside the repo or are passed in via other means.
+CLAUDE.md
+ROADMAP.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Results and leaderboard (generated; commit selectively)
+results/
+
+# Manifests are tracked in git (no secrets in tool schemas).
+# If you capture a manifest that embeds a token, scrub it before committing.
+
+# Env / secrets
+.env
+*.env
+
+# Editor
+.vscode/
+.idea/
+*.swp

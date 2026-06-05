@@ -1,0 +1,4 @@
+[server.fixture]
+transport = "none"
+manifest_path = "manifests/fixture.json"
+notes = "Synthetic fixture for offline smoke tests."

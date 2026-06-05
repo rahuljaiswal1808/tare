@@ -1,0 +1,63 @@
+# TARE-Bench v0 server set (8). SaaS-focused; MongoDB kept as a deliberate
+# borderline entry for variance (Atlas management + database tools).
+#
+# IMPORTANT: the url / transport / auth_env values below are best-known starting
+# points and MUST be verified before live fetching (endpoints and auth flows change).
+# Until verified, use --source manifest with a captured manifests/<name>.json.
+# declares_dynamic_toolsets is a config-declared capability (not always visible in
+# tools/list), e.g. GitHub's dynamic toolsets flag.
+
+[server.github]
+transport = "http"
+url = "https://api.githubcopilot.com/mcp/"
+auth_env = "GITHUB_MCP_TOKEN"
+manifest_path = "manifests/github.json"
+declares_dynamic_toolsets = true
+notes = "Remote GitHub MCP. Verify endpoint + token type. Supports dynamic toolsets + toolset scoping."
+
+[server.atlassian]
+transport = "http"
+url = "https://mcp.atlassian.com/v1/mcp"
+auth_env = "ATLASSIAN_MCP_TOKEN"
+manifest_path = "manifests/atlassian.json"
+notes = "Atlassian Rovo MCP (Jira + Confluence). OAuth; verify flow. ~10K-token claim is UNVERIFIED, measure it."
+
+[server.notion]
+transport = "http"
+url = "https://mcp.notion.com/mcp"
+auth_env = "NOTION_MCP_TOKEN"
+manifest_path = "manifests/notion.json"
+notes = "Hosted Notion MCP (~18 tools hosted / ~22 local). Verify endpoint + auth."
+
+[server.salesforce]
+transport = "stdio"
+command = ["npx", "-y", "@salesforce/mcp"]
+manifest_path = "manifests/salesforce.json"
+notes = "Salesforce DX MCP. 80+ tools available; default subset. Verify package name + invocation."
+
+[server.linear]
+transport = "http"
+url = "https://mcp.linear.app/mcp"
+auth_env = "LINEAR_MCP_TOKEN"
+manifest_path = "manifests/linear.json"
+notes = "Linear MCP. Verify endpoint (sse vs streamable-http) + OAuth."
+
+[server.stripe]
+transport = "http"
+url = "https://mcp.stripe.com"
+auth_env = "STRIPE_MCP_TOKEN"
+manifest_path = "manifests/stripe.json"
+notes = "Stripe MCP. Verify endpoint + auth header."
+
+[server.slack]
+transport = "stdio"
+command = ["npx", "-y", "@modelcontextprotocol/server-slack"]
+auth_env = "SLACK_BOT_TOKEN"
+manifest_path = "manifests/slack.json"
+notes = "Slack MCP. Verify current package (official vs community) + token scopes."
+
+[server.mongodb]
+transport = "stdio"
+command = ["npx", "-y", "mongodb-mcp-server"]
+manifest_path = "manifests/mongodb.json"
+notes = "MongoDB MCP (Atlas + database tools). Borderline-SaaS, kept for variance. Verify package + connection."

@@ -1,0 +1,32 @@
+{
+  "captured_at": "2026-06-05T00:00:00+00:00",
+  "provenance": "synthetic fixture for tests and smoke runs",
+  "declares_dynamic_toolsets": false,
+  "tools": [
+    {
+      "name": "list_issues",
+      "description": "List issues in a repository. Use this when you need multiple issues; do not use it to fetch a single known issue.",
+      "inputSchema": {"type": "object", "properties": {
+        "repo": {"type": "string"}, "state": {"type": "string", "enum": ["open", "closed"]},
+        "limit": {"type": "integer"}, "page": {"type": "integer"}}}
+    },
+    {
+      "name": "get_issue",
+      "description": "Get a single issue by number. Use this when you already know the issue number.",
+      "inputSchema": {"type": "object", "properties": {
+        "repo": {"type": "string"}, "number": {"type": "integer"}}}
+    },
+    {
+      "name": "create_issue",
+      "description": "Create an issue. Do not use this to comment on an existing issue.",
+      "inputSchema": {"type": "object", "properties": {
+        "repo": {"type": "string"}, "title": {"type": "string"}, "body": {"type": "string"}}}
+    },
+    {
+      "name": "search_code",
+      "description": "Search code across repositories. Use when you need to locate symbols; prefer get_file when you know the path.",
+      "inputSchema": {"type": "object", "properties": {
+        "query": {"type": "string"}, "limit": {"type": "integer"}, "cursor": {"type": "string"}}}
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "captured_at": "UNCAPTURED",
+  "provenance": "stub -- run: GITHUB_MCP_TOKEN=<tok> python scripts/capture_manifest.py --config servers.toml --server stripe --out manifests/stripe.json",
+  "declares_dynamic_toolsets": false,
+  "tools": []
+}

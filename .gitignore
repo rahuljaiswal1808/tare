@@ -17,8 +17,8 @@ venv/
 # Results and leaderboard (generated; commit selectively)
 results/
 
-# Manifests with potential auth artifacts
-manifests/*.json
+# Manifests are tracked in git (no secrets in tool schemas).
+# If you capture a manifest that embeds a token, scrub it before committing.
 
 # Env / secrets
 .env

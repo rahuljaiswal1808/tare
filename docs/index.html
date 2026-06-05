@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TARE — MCP Server Analyzer</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --red: #f85149;
+    --green-bg: #0d2d0f;
+    --yellow-bg: #2d1e00;
+    --red-bg: #2d0f0f;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  header { border-bottom: 1px solid var(--border); padding: 20px 24px; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+  header .tagline { color: var(--muted); font-size: 13px; }
+  header a.gh { margin-left: auto; color: var(--muted); font-size: 13px; }
+
+  .layout { display: grid; grid-template-columns: 1fr 340px; gap: 0; min-height: calc(100vh - 57px); }
+  .main { padding: 24px; border-right: 1px solid var(--border); }
+  .sidebar { padding: 24px; }
+
+  h2 { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
+  h3 { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+  .tab { padding: 8px 16px; cursor: pointer; border-bottom: 2px solid transparent; font-size: 13px; color: var(--muted); margin-bottom: -1px; }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Inputs */
+  textarea { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; padding: 12px; resize: vertical; min-height: 180px; outline: none; }
+  textarea:focus { border-color: var(--accent); }
+  input[type=text], input[type=url] { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 13px; padding: 9px 12px; outline: none; }
+  input:focus { border-color: var(--accent); }
+  .file-drop { background: var(--surface); border: 2px dashed var(--border); border-radius: var(--radius); padding: 32px; text-align: center; cursor: pointer; color: var(--muted); font-size: 13px; transition: border-color 0.15s; }
+  .file-drop:hover, .file-drop.drag-over { border-color: var(--accent); color: var(--text); }
+  .file-drop input { display: none; }
+
+  button.primary { background: var(--accent); color: #0d1117; border: none; border-radius: var(--radius); padding: 9px 20px; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 12px; }
+  button.primary:hover { opacity: 0.88; }
+  button.primary:disabled { opacity: 0.4; cursor: default; }
+
+  .hint { color: var(--muted); font-size: 12px; margin-top: 8px; }
+
+  /* Results */
+  .results { margin-top: 24px; display: none; }
+  .results.visible { display: block; }
+
+  .score-row { display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; margin-bottom: 16px; }
+  .score-badge { width: 72px; height: 72px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; flex-shrink: 0; }
+  .score-badge.green { background: var(--green-bg); color: var(--green); border: 2px solid var(--green); }
+  .score-badge.yellow { background: var(--yellow-bg); color: var(--yellow); border: 2px solid var(--yellow); }
+  .score-badge.red { background: var(--red-bg); color: var(--red); border: 2px solid var(--red); }
+  .score-meta { flex: 1; }
+  .score-meta .label { font-size: 18px; font-weight: 600; }
+  .score-meta .sub { color: var(--muted); font-size: 13px; }
+  .score-cost { text-align: right; }
+  .score-cost .num { font-size: 22px; font-weight: 700; }
+  .score-cost .unit { color: var(--muted); font-size: 12px; }
+
+  .approx-warn { background: #2d1e00; border: 1px solid #5a3e00; border-radius: var(--radius); padding: 10px 14px; font-size: 12px; color: #d29922; margin-bottom: 16px; }
+
+  table.dims { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.dims th { text-align: left; color: var(--muted); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  table.dims td { padding: 9px 8px; border-bottom: 1px solid var(--border); }
+  table.dims tr:last-child td { border-bottom: none; }
+  .band-chip { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .band-chip.green { background: var(--green-bg); color: var(--green); }
+  .band-chip.yellow { background: var(--yellow-bg); color: var(--yellow); }
+  .band-chip.red { background: var(--red-bg); color: var(--red); }
+  .band-chip.full { background: var(--green-bg); color: var(--green); }
+  .band-chip.none { background: var(--red-bg); color: var(--red); }
+
+  .raw-toggle { color: var(--accent); font-size: 12px; cursor: pointer; }
+  .raw-data { display: none; font-family: monospace; font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .raw-data.open { display: block; }
+
+  /* Error */
+  .error-box { background: var(--red-bg); border: 1px solid var(--red); border-radius: var(--radius); padding: 12px 16px; color: var(--red); font-size: 13px; margin-top: 12px; }
+
+  /* Leaderboard */
+  .lb-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .lb-row:last-child { border-bottom: none; }
+  .lb-rank { color: var(--muted); font-size: 12px; width: 20px; flex-shrink: 0; }
+  .lb-server { flex: 1; font-size: 13px; font-weight: 500; }
+  .lb-score { font-weight: 700; font-size: 14px; }
+  .lb-score.green { color: var(--green); }
+  .lb-score.yellow { color: var(--yellow); }
+  .lb-score.red { color: var(--red); }
+  .lb-cost { color: var(--muted); font-size: 12px; text-align: right; width: 70px; }
+
+  .lb-bar-wrap { width: 60px; height: 6px; background: var(--border); border-radius: 3px; }
+  .lb-bar { height: 100%; border-radius: 3px; }
+
+  @media (max-width: 700px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { border-top: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>TARE</h1>
+    <div class="tagline">Tool And Response Economy — MCP context-window cost analyzer</div>
+  </div>
+  <a class="gh" href="https://github.com/rahuljaiswal1808/tare" target="_blank">GitHub ↗</a>
+</header>
+
+<div class="layout">
+  <div class="main">
+    <h2>Measure your MCP server</h2>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="paste">Paste JSON</div>
+      <div class="tab" data-tab="upload">Upload file</div>
+      <div class="tab" data-tab="url">Remote URL</div>
+    </div>
+
+    <!-- Paste -->
+    <div class="tab-panel active" id="tab-paste">
+      <textarea id="paste-input" placeholder='Paste your MCP tools/list response JSON here.
+
+Example:
+{
+  "tools": [
+    {
+      "name": "my_tool",
+      "description": "Use this to ...",
+      "inputSchema": { "type": "object", "properties": {} }
+    }
+  ]
+}'></textarea>
+      <button class="primary" id="paste-btn">Analyze</button>
+    </div>
+
+    <!-- Upload -->
+    <div class="tab-panel" id="tab-upload">
+      <div class="file-drop" id="file-drop">
+        <input type="file" id="file-input" accept=".json,application/json">
+        <div>Drop a <code>.json</code> manifest file here, or click to browse</div>
+        <div style="margin-top:6px;font-size:11px">Accepts a raw tools/list JSON response or a TARE manifest file</div>
+      </div>
+      <button class="primary" id="upload-btn" disabled>Analyze</button>
+    </div>
+
+    <!-- URL -->
+    <div class="tab-panel" id="tab-url">
+      <input type="url" id="url-input" placeholder="https://your-server.example.com/sse  (HTTP/SSE MCP endpoint)">
+      <p class="hint" style="margin-top:8px">
+        The browser fetches <code>tools/list</code> directly — the server must send CORS headers allowing this origin.
+        Most hosted MCP servers don't, so paste or upload is more reliable.
+        <a href="https://github.com/rahuljaiswal1808/tare#cors" target="_blank">Learn more ↗</a>
+      </p>
+      <button class="primary" id="url-btn">Fetch &amp; Analyze</button>
+    </div>
+
+    <!-- Results -->
+    <div class="results" id="results">
+      <div class="approx-warn">
+        ⚠ Results use the approx tokenizer (chars ÷ 4), not o200k_base. Treat token figures as smoke-test estimates — not publishable benchmarks.
+      </div>
+      <div class="score-row" id="score-row">
+        <div class="score-badge" id="badge"></div>
+        <div class="score-meta">
+          <div class="label" id="score-label"></div>
+          <div class="sub" id="score-sub"></div>
+        </div>
+        <div class="score-cost">
+          <div class="num" id="cost-num"></div>
+          <div class="unit">tokens (approx)</div>
+          <div class="unit" id="tool-count-label"></div>
+        </div>
+      </div>
+
+      <table class="dims" id="dims-table">
+        <thead>
+          <tr>
+            <th>Dimension</th>
+            <th>Band</th>
+            <th style="text-align:right">Points</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody id="dims-body"></tbody>
+      </table>
+    </div>
+
+    <div class="error-box" id="error-box" style="display:none"></div>
+  </div>
+
+  <div class="sidebar">
+    <h3>TARE-Bench v0 Leaderboard</h3>
+    <div id="leaderboard"></div>
+    <p style="margin-top:14px;font-size:11px;color:var(--muted)">
+      8 SaaS MCP servers. Measured 2026-06-05 with approx tokenizer.
+      <a href="SPEC.md" target="_blank">SPEC.md ↗</a>
+    </p>
+
+    <div style="margin-top:28px">
+      <h3>How it works</h3>
+      <p style="color:var(--muted);font-size:12px;line-height:1.7">
+        TARE scores the static design of MCP servers on 6 dimensions:<br><br>
+        <b style="color:var(--text)">D1 Tool Surface</b> (15%) — total tool count<br>
+        <b style="color:var(--text)">D2 Schema Footprint</b> (25%) — token cost of schemas<br>
+        <b style="color:var(--text)">D3 Progressive Disclosure</b> (20%) — runtime discovery<br>
+        <b style="color:var(--text)">D4 Response Discipline</b> (20%) — pagination/shaping params<br>
+        <b style="color:var(--text)">D5 Description Quality</b> (10%) — usage guidance in descriptions<br>
+        <b style="color:var(--text)">D6 Redundancy</b> (10%) — duplicated schema fragments<br><br>
+        Each dimension is green / yellow / red (100 / 60 / 20 pts). Weighted sum = Design Score.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { score } from './tare.js';
+
+// Leaderboard data (approx tokenizer, 2026-06-05)
+const LB = [
+  { server: "linear",     designScore: 76, staticContextCost:   939, toolCount:  5 },
+  { server: "slack",      designScore: 68, staticContextCost:   777, toolCount:  8 },
+  { server: "github",     designScore: 63, staticContextCost:  9067, toolCount: 43 },
+  { server: "stripe",     designScore: 62, staticContextCost:  2833, toolCount: 23 },
+  { server: "mongodb",    designScore: 54, staticContextCost:  4323, toolCount: 25 },
+  { server: "atlassian",  designScore: 46, staticContextCost: 20352, toolCount: 73 },
+  { server: "notion",     designScore: 38, staticContextCost: 16703, toolCount: 22 },
+  { server: "salesforce", designScore: 38, staticContextCost: 23481, toolCount: 74 },
+];
+
+function bandClass(s) { return s >= 70 ? "green" : s >= 50 ? "yellow" : "red"; }
+
+// Render leaderboard
+const lb = document.getElementById("leaderboard");
+LB.forEach((row, i) => {
+  const cls = bandClass(row.designScore);
+  const barW = Math.round(row.designScore);
+  const barColor = cls === "green" ? "#3fb950" : cls === "yellow" ? "#d29922" : "#f85149";
+  lb.innerHTML += `
+    <div class="lb-row">
+      <span class="lb-rank">${i+1}</span>
+      <span class="lb-server">${row.server}</span>
+      <div class="lb-bar-wrap"><div class="lb-bar" style="width:${barW}%;background:${barColor}"></div></div>
+      <span class="lb-score ${cls}">${row.designScore}</span>
+      <span class="lb-cost">${row.staticContextCost.toLocaleString()} tok</span>
+    </div>`;
+});
+
+// Tabs
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById("tab-" + tab.dataset.tab).classList.add("active");
+    hideError();
+  });
+});
+
+// File drop
+let uploadedJson = null;
+const fileDrop = document.getElementById("file-drop");
+const fileInput = document.getElementById("file-input");
+const uploadBtn = document.getElementById("upload-btn");
+
+fileDrop.addEventListener("click", () => fileInput.click());
+fileDrop.addEventListener("dragover", e => { e.preventDefault(); fileDrop.classList.add("drag-over"); });
+fileDrop.addEventListener("dragleave", () => fileDrop.classList.remove("drag-over"));
+fileDrop.addEventListener("drop", e => {
+  e.preventDefault(); fileDrop.classList.remove("drag-over");
+  const f = e.dataTransfer.files[0];
+  if (f) readFile(f);
+});
+fileInput.addEventListener("change", () => { if (fileInput.files[0]) readFile(fileInput.files[0]); });
+
+function readFile(f) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      uploadedJson = JSON.parse(e.target.result);
+      fileDrop.innerHTML = `<div style="color:var(--green)">✓ ${f.name} loaded (${(f.size/1024).toFixed(1)} KB)</div><input type="file" id="file-input" accept=".json,application/json">`;
+      uploadBtn.disabled = false;
+    } catch { showError("Invalid JSON in file."); }
+  };
+  reader.readAsText(f);
+}
+
+// Run analysis
+function runScore(manifest) {
+  hideError();
+  try {
+    const r = score(manifest);
+    renderResults(r);
+  } catch(e) {
+    showError("Scoring error: " + e.message);
+  }
+}
+
+document.getElementById("paste-btn").addEventListener("click", () => {
+  const raw = document.getElementById("paste-input").value.trim();
+  if (!raw) { showError("Paste a JSON tools/list response first."); return; }
+  try { runScore(JSON.parse(raw)); } catch(e) { showError("JSON parse error: " + e.message); }
+});
+
+document.getElementById("upload-btn").addEventListener("click", () => {
+  if (uploadedJson) runScore(uploadedJson);
+});
+
+document.getElementById("url-btn").addEventListener("click", async () => {
+  const url = document.getElementById("url-input").value.trim();
+  if (!url) { showError("Enter a URL."); return; }
+  const btn = document.getElementById("url-btn");
+  btn.disabled = true; btn.textContent = "Fetching…";
+  try {
+    // Send MCP tools/list via JSON-RPC
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const tools = data?.result?.tools || data?.tools;
+    if (!tools) throw new Error("No tools array in response. Check that this endpoint supports tools/list.");
+    runScore({ tools });
+  } catch(e) {
+    showError(`Fetch failed: ${e.message}. The server likely blocks CORS — paste or upload the manifest instead.`);
+  } finally {
+    btn.disabled = false; btn.textContent = "Fetch & Analyze";
+  }
+});
+
+function renderResults(r) {
+  const el = document.getElementById("results");
+  el.classList.add("visible");
+
+  const { designScore, staticContextCost, toolCount, dimensions } = r;
+  const cls = bandClass(designScore);
+  const label = designScore >= 70 ? "Good" : designScore >= 50 ? "Needs work" : "Poor";
+
+  document.getElementById("badge").textContent = designScore;
+  document.getElementById("badge").className = `score-badge ${cls}`;
+  document.getElementById("score-label").textContent = `Design Score: ${designScore} / 100 — ${label}`;
+  document.getElementById("score-sub").textContent = "Static design discipline (descriptions, footprint, progressive disclosure, redundancy)";
+  document.getElementById("cost-num").textContent = staticContextCost.toLocaleString();
+  document.getElementById("tool-count-label").textContent = `${toolCount} tool${toolCount !== 1 ? "s" : ""}`;
+
+  const tbody = document.getElementById("dims-body");
+  tbody.innerHTML = "";
+  const dimInfo = [
+    "Tool count ≤15 green, ≤30 yellow, >30 red",
+    "Median token cost per tool; total token cost",
+    "Runtime tool discovery or meta-tools detected",
+    "Data tools with pagination/shaping params",
+    "Descriptions with length 20-1500 chars + usage guidance",
+    "Duplicate property schema fragments",
+  ];
+  dimensions.forEach((d, i) => {
+    const bc = d.band === "full" ? "green" : d.band === "none" ? "red" : d.band;
+    const rawStr = JSON.stringify(d.raw, null, 2);
+    const uid = "raw-" + i;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${d.dimension}</td>
+      <td><span class="band-chip ${d.band}">${d.band}</span></td>
+      <td style="text-align:right;font-weight:600">${d.points}</td>
+      <td>
+        <span class="raw-toggle" data-target="${uid}" title="${dimInfo[i]}">details ▾</span>
+        <pre class="raw-data" id="${uid}">${rawStr}</pre>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+
+  // Wire toggle
+  document.querySelectorAll(".raw-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const pre = document.getElementById(btn.dataset.target);
+      pre.classList.toggle("open");
+      btn.textContent = pre.classList.contains("open") ? "details ▴" : "details ▾";
+    });
+  });
+
+  el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function showError(msg) {
+  const box = document.getElementById("error-box");
+  box.textContent = msg; box.style.display = "block";
+}
+function hideError() {
+  document.getElementById("error-box").style.display = "none";
+  document.getElementById("results").classList.remove("visible");
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "captured_at": "2026-06-05T06:30:00+00:00",
+  "provenance": "live:stdio:uvx mcp-server-duckdb by ktanaka101 (their #6)",
+  "declares_dynamic_toolsets": false,
+  "tools": [
+    {
+      "name": "query",
+      "description": "Execute a query on the DuckDB database",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "SQL query to execute"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    }
+  ]
+}

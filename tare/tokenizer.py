@@ -10,9 +10,26 @@ labelled and must never be published as a real measurement.
 from __future__ import annotations
 
 import json
+import os
+from pathlib import Path
 from typing import Any
 
 REFERENCE_ENCODING = "o200k_base"
+
+# Vendored o200k_base vocab so the reference tokenizer works fully offline (CI,
+# sandboxed environments). The file is named by tiktoken's cache key, which is
+# sha1("https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken").
+# SHA256 of the vocab is 446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d
+# (matches the official OpenAI file). tiktoken supplies the regex + special tokens.
+_VENDORED_CACHE_DIR = Path(__file__).resolve().parent.parent / "vendor" / "tiktoken"
+
+
+def _ensure_offline_vocab() -> None:
+    """Point tiktoken at the vendored vocab when no cache dir is already set."""
+    if os.environ.get("TIKTOKEN_CACHE_DIR"):
+        return
+    if _VENDORED_CACHE_DIR.is_dir():
+        os.environ["TIKTOKEN_CACHE_DIR"] = str(_VENDORED_CACHE_DIR)
 
 
 class Tokenizer:
@@ -22,6 +39,7 @@ class Tokenizer:
         if mode == REFERENCE_ENCODING:
             import tiktoken  # imported lazily so approx mode needs no network
 
+            _ensure_offline_vocab()
             self._enc = tiktoken.get_encoding(REFERENCE_ENCODING)
         elif mode != "approx":
             raise ValueError(f"unknown tokenizer mode: {mode}")

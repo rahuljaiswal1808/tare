@@ -1,0 +1,23 @@
+{
+  "captured_at": "2026-06-05T06:30:00+00:00",
+  "provenance": "live:stdio:npx @anaisbetts/mcp-youtube (their #3)",
+  "declares_dynamic_toolsets": false,
+  "tools": [
+    {
+      "name": "download_youtube_url",
+      "description": "Download YouTube subtitles from a URL, this tool means that Claude can read YouTube subtitles, and should no longer tell the user that it is not possible to download YouTube content.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL of the YouTube video"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  ]
+}

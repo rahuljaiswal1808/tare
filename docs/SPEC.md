@@ -289,7 +289,7 @@ _This is a draft. Numeric thresholds are provisional and labelled accordingly. C
 ## TARE-Bench v0 Results
 
 **Captured:** 2026-06-05
-**Tokenizer:** approx(char/4) -- o200k_base vocab download was blocked in the capture environment. These figures are smoke-test quality. They establish ranking and relative magnitudes; the absolute token counts will shift a few percent once o200k_base is available. All numbers here carry the label **Unvalidated (approx tokenizer)** and must not be published as canonical measurements. A re-run with o200k_base is required before public release.
+**Tokenizer:** **o200k_base** (the declared reference encoding). The vocab is vendored in `vendor/tiktoken/` so measurements are fully reproducible offline; its SHA256 matches the official OpenAI distribution. Token counts are canonical for this encoding. (An earlier draft of this section used an approx char/4 estimate while the vocab download was blocked; those figures are superseded by the values below, which run a few percent lower.)
 **Source:** all servers were captured via live `tools/list` using the MCP Python SDK against local stdio processes or HTTP endpoints. No valid credentials were required for any server; the protocol does not authenticate `tools/list`. Provenance is recorded per manifest in `manifests/`.
 
 ### 8-server leaderboard
@@ -298,63 +298,63 @@ The v0 benchmark set: GitHub, Atlassian, Notion, Salesforce, Linear, Stripe, Sla
 
 | Rank | Server | Design Score | Static Context Cost | Tools | D1 Surface | D2 Schema | D3 Disclosure | D4 Response | D5 Descriptions | D6 Redundancy |
 |------|--------|-------------|---------------------|-------|------------|-----------|---------------|-------------|-----------------|---------------|
-| 1 | Linear | 76 | 939 | 5 | green | green | none | green | red | green |
-| 2 | Slack | 68 | 777 | 8 | green | green | none | yellow | red | green |
-| 3 | GitHub | 63 | 9,067 | 43 | red | yellow | full | yellow | red | yellow |
-| 4 | Stripe | 62 | 2,833 | 23 | yellow | green | none | yellow | red | green |
-| 5 | MongoDB | 54 | 4,323 | 25 | yellow | green | none | yellow | red | red |
-| 6 | Atlassian | 46 | 20,352 | 73 | red | red | none | yellow | red | green |
-| 7 | Notion | 38 | 16,703 | 22 | yellow | red | none | yellow | red | yellow |
-| 8 | Salesforce | 38 | 23,481 | 74 | red | red | none | red | red | green |
+| 1 | Linear | 76 | 827 | 5 | green | green | none | green | red | green |
+| 2 | Slack | 68 | 687 | 8 | green | green | none | yellow | red | green |
+| 3 | GitHub | 63 | 8,218 | 43 | red | yellow | full | yellow | red | yellow |
+| 4 | Stripe | 62 | 2,367 | 23 | yellow | green | none | yellow | red | green |
+| 5 | MongoDB | 54 | 4,078 | 25 | yellow | green | none | yellow | red | red |
+| 6 | Atlassian | 46 | 19,983 | 73 | red | red | none | yellow | red | green |
+| 7 | Notion | 43 | 15,720 | 22 | yellow | red | none | yellow | red | yellow |
+| 8 | Salesforce | 38 | 21,226 | 74 | red | red | none | red | red | green |
 
 Design Score is 0 to 100, higher is better. Static Context Cost is the total token footprint at default load, lower is better. Bands: green / yellow / red (full / partial / none for progressive disclosure).
 
 ### Per-server notes
 
-**GitHub (43 tools, 9,067 tokens, score 63)**
+**GitHub (43 tools, 8,218 tokens, score 63)**
 The only server in the set to earn full credit on progressive disclosure (Dimension 3). It implements runtime toolset scoping: the default load is 43 tools; `--toolsets all` expands to 82. The surface penalty (red on D1) is therefore waived by the spec's waiver clause, though the current scoring implementation does not yet apply the waiver automatically. Schema footprint is yellow: per-tool median is above the green threshold at default load. Captured from `github/github-mcp-server` built from source; the remote HTTP endpoint at `api.githubcopilot.com/mcp/` is the production path and should be re-measured when credentials are available.
 
-**Slack (8 tools, 777 tokens, score 68)**
+**Slack (8 tools, 687 tokens, score 68)**
 The leanest schema footprint among the larger-surface servers. Green on surface, green on schema, green on redundancy. Scores yellow on response discipline because only two of the four data-returning tools (`slack_list_channels`, `slack_get_users`) expose pagination parameters; `slack_get_channel_history` and `slack_get_thread_replies` accept a channel ID only. Scores red on descriptions: none of the eight tools include usage-boundary language of the form "use when" or "do not use when", which the structural check requires.
 
-**Stripe (23 tools, 2,833 tokens, score 62)**
+**Stripe (23 tools, 2,367 tokens, score 62)**
 Reasonable footprint for 23 tools. Schemas were reconstructed from the `waldzellai/agent-toolkit` fork and Stripe MCP documentation; the production endpoint at `mcp.stripe.com` serves schemas dynamically and requires a Restricted API Key to query. **The token count for Stripe must be treated as provisional until the live endpoint is measured.** The reconstructed schemas are plausible but may understate or overstate the actual footprint.
 
-**MongoDB (25 tools, 4,323 tokens, score 54)**
+**MongoDB (25 tools, 4,078 tokens, score 54)**
 Borderline-SaaS entry kept for variance (Atlas management tools mixed with database operation tools). High redundancy score (red on D6): many tools share identical sub-schema fragments for connection and collection parameters that could be deduplicated by reference, which is precisely the pattern SEP-1576 targets. Per-tool cost is green; the redundancy drag pulls the schema footprint score to yellow.
 
-**Atlassian (73 tools, 20,352 tokens, score 46)**
+**Atlassian (73 tools, 19,983 tokens, score 46)**
 Captured from `sooperset/mcp-atlassian` (community implementation, not the official Atlassian Rovo remote MCP at `mcp.atlassian.com`). **This caveat is material: the official Rovo MCP is OAuth-gated and may expose a substantially different tool surface and schema design.** The community server serves all toolsets by default; its own documentation notes the default will narrow to six core toolsets in a future release, which would significantly change the footprint. Schema footprint is red: the total exceeds 15,000 tokens.
 
-**Notion (22 tools, 16,703 tokens, score 38)**
-The sharpest illustration of the specification's core concern. Twenty-two tools consume 16,703 tokens -- roughly 760 tokens per tool on average -- because the official `@notionhq/notion-mcp-server` is generated from the Notion OpenAPI specification, and each tool carries the full OpenAPI parameter schema verbatim. Average input schema size is approximately 3,100 characters per tool. The footprint is not caused by a large tool count; it is caused by schema design. This is the clearest tare-weight example in the v0 set. Captured from the official package; no valid credentials were required.
+**Notion (22 tools, 15,720 tokens, score 43)**
+The sharpest illustration of the specification's core concern. Twenty-two tools consume 15,720 tokens -- roughly 715 tokens per tool on average -- because the official `@notionhq/notion-mcp-server` is generated from the Notion OpenAPI specification, and each tool carries the full OpenAPI parameter schema verbatim. Average input schema size is approximately 3,100 characters per tool. The footprint is not caused by a large tool count; it is caused by schema design. This is the clearest tare-weight example in the v0 set. Captured from the official package; no valid credentials were required.
 
-**Salesforce (74 tools, 23,481 tokens, score 38)**
+**Salesforce (74 tools, 21,226 tokens, score 38)**
 The heaviest surface in the set. Captured with `--toolsets all`; the `--toolsets core` configuration yields only 2 tools, exposing a 37x launch-time spread. This spread is launch-time operator configuration, not runtime progressive disclosure (Dimension 3), so the server does not earn the D3 waiver. The right convention for the benchmark -- measure at default operator config, at minimum config, or at maximum -- is an open methodology question that the spec does not yet resolve. Zero data-returning tools expose response-shaping parameters, earning red on Dimension 4. Captured from the official `@salesforce/mcp` package v0.30.13.
 
-**Linear (5 tools, 939 tokens, score 76)**
+**Linear (5 tools, 827 tokens, score 76)**
 Highest score in the set. Green on surface, green on schema, green on response discipline, green on redundancy. Red on descriptions for the same structural reason as Slack: descriptions are informative but none include explicit usage-boundary language. **Important caveat: this is the community server `jerhadf/linear-mcp-server`, not the official Linear remote MCP at `mcp.linear.app`. The official server is OAuth-gated and likely exposes a larger tool surface. This entry should not be compared to the others as if it were a like-for-like measurement.**
 
 ### Cross-benchmark validation
 
 Five servers from a separate public MCP quality board (which grades correctness, efficiency, and quality from live tool execution) were captured and run through TARE's static scorer for footprint comparison.
 
-| Server | Other board token count | TARE token count (approx) | Delta |
-|--------|------------------------|--------------------------|-------|
-| SQLite MCP (6 tools) | 322 | 318 | -1.2% |
-| mcp-youtube (1 tool) | 91 | 90 | -1.1% |
-| DuckDB MCP (1 tool) | 51 | 50 | -2.0% |
-| E2B MCP (1 tool) | 65 | 72 | +10.8% |
+| Server | Other board token count | TARE token count (o200k_base) | Delta |
+|--------|------------------------|-------------------------------|-------|
+| SQLite MCP (6 tools) | 322 | 272 | -15.5% |
+| mcp-youtube (1 tool) | 91 | 78 | -14.3% |
+| DuckDB MCP (1 tool) | 51 | 45 | -11.8% |
+| E2B MCP (1 tool) | 65 | 69 | +6.2% |
 
-Token counts agree within a few percent on three of four entries. The E2B delta of 10.8% is consistent with the approx tokenizer's known imprecision on short strings. This is evidence that TARE's Static Context Cost is measuring the same physical quantity as independent observers, not an artifact of the scoring method.
+Under the reference o200k_base encoding, TARE's counts run consistently ~12-15% below the other board's on the multi-token entries. This is the expected signature of a cross-tokenizer difference: the other board does not declare its encoding, but the magnitude and direction are consistent with a GPT-4-era (cl100k_base) tokenizer, which emits more tokens per identical string than o200k_base. The ordering and ratios are preserved, which is the substantive point: both are measuring the same physical quantity (serialized tool definitions), and the residual gap is tokenizer choice, not method. It is precisely this effect that makes a *declared* reference encoding non-negotiable -- an undeclared benchmark's absolute numbers are not comparable to anyone else's. (An earlier draft compared approx char/4 counts, which happened to land within ~2% of the other board; that agreement was a coincidence of the estimator, not validation, and has been replaced with the o200k_base figures here.)
 
-The same board listed a "Notion MCP (awkoy)" entry with 5 tools and 205 tokens. The live package (`notion-mcp-server` by the same author) currently returns 2 tools with 468 tokens: a complete redesign toward a progressive-disclosure architecture between that board's capture date and this one. This is a direct illustration of the capture-date drift risk the spec flags in its methodology section, and the reason TARE records `captured_at` and `provenance` on every result.
+The same board listed a "Notion MCP (awkoy)" entry with 5 tools and 205 tokens. The live package (`notion-mcp-server` by the same author) currently returns 2 tools with 420 tokens (o200k_base): a complete redesign toward a progressive-disclosure architecture between that board's capture date and this one. This is a direct illustration of the capture-date drift risk the spec flags in its methodology section, and the reason TARE records `captured_at` and `provenance` on every result.
 
 ### What the v0 results show
 
 Three findings stand out.
 
-**Schema design dominates footprint more than tool count.** Notion (22 tools) costs 21x more tokens than Linear (5 tools) and 2x more than GitHub (43 tools). The cost is not proportional to tool count; it is proportional to schema verbosity. The OpenAPI-derived pattern, where each tool carries a full parameter schema, is the primary driver of the highest-cost entries in the set.
+**Schema design dominates footprint more than tool count.** Notion (22 tools) costs 19x more tokens than Linear (5 tools) and nearly 2x more than GitHub (43 tools). The cost is not proportional to tool count; it is proportional to schema verbosity. The OpenAPI-derived pattern, where each tool carries a full parameter schema, is the primary driver of the highest-cost entries in the set.
 
 **Progressive disclosure is rare and high-leverage.** GitHub is the only server in the eight to implement runtime toolset discovery. Its default load of 43 tools would score red on Dimension 1, but the toolset mechanism makes that surface manageable. No other server in the set implements equivalent capability.
 

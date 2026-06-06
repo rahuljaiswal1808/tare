@@ -177,7 +177,7 @@ Example:
     <!-- Results -->
     <div class="results" id="results">
       <div class="approx-warn">
-        ⚠ Results use the approx tokenizer (chars ÷ 4), not o200k_base. Treat token figures as smoke-test estimates — not publishable benchmarks.
+        ⚠ This in-browser analyzer uses the approx tokenizer (chars ÷ 4) — o200k_base can't run client-side. Treat your token figures as estimates (~10-15% high). The leaderboard at right is measured with the real o200k_base reference encoding; reproduce canonical numbers with the Python harness (<code>tare measure-server</code>).
       </div>
       <div class="score-row" id="score-row">
         <div class="score-badge" id="badge"></div>
@@ -212,7 +212,7 @@ Example:
     <h3>TARE-Bench v0 Leaderboard</h3>
     <div id="leaderboard"></div>
     <p style="margin-top:14px;font-size:11px;color:var(--muted)">
-      8 SaaS MCP servers. Measured 2026-06-05 with approx tokenizer.
+      8 SaaS MCP servers. Measured 2026-06-05 with the reference o200k_base tokenizer.
       <a href="SPEC.md" target="_blank">SPEC.md ↗</a>
     </p>
 
@@ -236,15 +236,16 @@ Example:
 import { score } from './tare.js';
 
 // Leaderboard data (approx tokenizer, 2026-06-05)
+// o200k_base (reference encoding), measured 2026-06-05.
 const LB = [
-  { server: "linear",     designScore: 76, staticContextCost:   939, toolCount:  5 },
-  { server: "slack",      designScore: 68, staticContextCost:   777, toolCount:  8 },
-  { server: "github",     designScore: 63, staticContextCost:  9067, toolCount: 43 },
-  { server: "stripe",     designScore: 62, staticContextCost:  2833, toolCount: 23 },
-  { server: "mongodb",    designScore: 54, staticContextCost:  4323, toolCount: 25 },
-  { server: "atlassian",  designScore: 46, staticContextCost: 20352, toolCount: 73 },
-  { server: "notion",     designScore: 38, staticContextCost: 16703, toolCount: 22 },
-  { server: "salesforce", designScore: 38, staticContextCost: 23481, toolCount: 74 },
+  { server: "linear",     designScore: 76, staticContextCost:   827, toolCount:  5 },
+  { server: "slack",      designScore: 68, staticContextCost:   687, toolCount:  8 },
+  { server: "github",     designScore: 63, staticContextCost:  8218, toolCount: 43 },
+  { server: "stripe",     designScore: 62, staticContextCost:  2367, toolCount: 23 },
+  { server: "mongodb",    designScore: 54, staticContextCost:  4078, toolCount: 25 },
+  { server: "atlassian",  designScore: 46, staticContextCost: 19983, toolCount: 73 },
+  { server: "notion",     designScore: 43, staticContextCost: 15720, toolCount: 22 },
+  { server: "salesforce", designScore: 38, staticContextCost: 21226, toolCount: 74 },
 ];
 
 function bandClass(s) { return s >= 70 ? "green" : s >= 50 ? "yellow" : "red"; }

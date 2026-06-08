@@ -2,7 +2,9 @@
 
 **An open benchmark and specification for the context-window cost of MCP servers.**
 
-Every MCP server injects its tool definitions into the model context on every request — before any user input, on every turn. TARE measures that overhead and scores the design discipline behind it. The *tare weight* of a server is what it costs the model to hold it, empty, before any work begins.
+There are existing linters for MCP tool quality (agent-friend being the most complete) but no neutral, reproducible benchmark -- a dated, tokenizer-declared measurement of real production servers that anyone can re-run and compare against. TARE fills that gap.
+
+Every MCP server injects its tool definitions into the model context on every request -- before any user input, on every turn. TARE measures that overhead and scores the design discipline behind it. The *tare weight* of a server is what it costs the model to hold it, empty, before any work begins.
 
 ## TARE-Bench v0: 8 SaaS servers, measured
 
